@@ -1,0 +1,1 @@
+pub const bench = @import("bench.zig").bench;
