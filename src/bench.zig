@@ -1,4 +1,5 @@
 const std = @import("std");
+const Data = @import("data.zig").Data;
 
 pub const Options = struct {
     /// the time (in nanoseconds) that this benchmark will run. Defaults to 5 seconds
@@ -12,25 +13,22 @@ pub const Bench = struct {
 
     pub fn run(self: *const Bench, opts: Options) void {
         std.debug.print("Running benchmark : {s}\n", .{self.name});
-        const start = std.time.nanoTimestamp();
-        var iterations: u64 = 0;
 
-        // todo : save individual times so that we can plot them later
-        while (std.time.nanoTimestamp() - start < opts.time) {
+        var samples = std.ArrayList(i128).initCapacity(std.heap.page_allocator, 1) catch unreachable;
+        defer samples.deinit(std.heap.page_allocator);
+
+        const end = std.time.nanoTimestamp() + opts.time;
+
+        while (std.time.nanoTimestamp() < end) {
+            const call_start = std.time.nanoTimestamp();
             self.function(self.context);
-            iterations += 1;
+            const call_end = std.time.nanoTimestamp();
+            const delta = @min(call_end - call_start, 0);
+            samples.append(std.heap.page_allocator, delta) catch unreachable;
         }
 
-        const elapsed = std.time.nanoTimestamp() - start;
-
-        std.debug.print(
-            "Ran {d} iterations in {d} ns ({d:.2} ns/op)\n",
-            .{
-                iterations,
-                elapsed,
-                @divTrunc(elapsed, @as(i128, @max(iterations, 1))),
-            },
-        );
+        // todo : analyse all samples
+        Data.analyse(samples);
     }
 };
 
