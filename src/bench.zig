@@ -6,44 +6,58 @@ pub const Options = struct {
     time: u64 = 5e9,
 };
 
-pub const Bench = struct {
-    name: []const u8,
-    function: *const fn(*const anyopaque) void,
-    context: *const anyopaque,
+pub fn Bench(
+    comptime Context: type,
+    comptime F: type,
+) type {
+    return struct {
+        name: []const u8,
+        setup: *const fn() Context,
+        function: F,
+        context: Context,
 
-    pub fn run(self: *const Bench, opts: Options) void {
-        std.debug.print("Running benchmark : {s}\n", .{self.name});
+        const Self = @This();
 
-        var samples = std.ArrayList(i128).initCapacity(std.heap.page_allocator, 1) catch unreachable;
-        defer samples.deinit(std.heap.page_allocator);
+        pub fn run(self: *const Self, opts: Options) void {
+            std.debug.print("Running benchmark : {s}\n", .{self.name});
 
-        const end = std.time.nanoTimestamp() + opts.time;
+            var samples = std.ArrayList(i128).initCapacity(
+                std.heap.page_allocator, 1
+            ) catch unreachable;
 
-        while (std.time.nanoTimestamp() < end) {
-            const call_start = std.time.nanoTimestamp();
-            self.function(self.context);
-            const call_end = std.time.nanoTimestamp();
-            const delta = @min(call_end - call_start, 0);
-            samples.append(std.heap.page_allocator, delta) catch unreachable;
-        }
+            defer samples.deinit(std.heap.page_allocator);
 
-        // todo : analyse all samples
-        Data.analyse(samples);
-    }
-};
+            const end = std.time.nanoTimestamp() + opts.time;
 
-/// construct a new benchmark from a function and some args
-pub fn bench(name: []const u8, comptime func: anytype, args: anytype) Bench {
-    const Wrapper = struct {
-        fn call(ctx: *const anyopaque) void {
-            const typed: *const @TypeOf(args) = @ptrCast(@alignCast(ctx));
-            _ = @call(.auto, func, typed.*);
+            while (std.time.nanoTimestamp() < end) {
+                const ctx = self.setup();
+
+                const call_start = std.time.nanoTimestamp();
+                _ = self.function(ctx);
+                const call_end = std.time.nanoTimestamp();
+
+                const delta = @max(call_end - call_start, 0);
+                samples.append(std.heap.page_allocator, delta) catch unreachable;
+            }
+
+            Data.analyse(samples);
         }
     };
+}
 
-    return .{
+// todo : maybe find a way to clean up this ugly ass signature
+pub fn bench(
+    name: []const u8,
+    comptime bench_fn: anytype,
+    comptime setup_fn: anytype,
+) Bench(@typeInfo(@TypeOf(setup_fn)).@"fn".return_type.?, @TypeOf(bench_fn)) {
+    const SetupType = @TypeOf(setup_fn);
+    const Context = @typeInfo(SetupType).@"fn".return_type.?;
+
+    return Bench(Context, @TypeOf(bench_fn)) {
         .name = name,
-        .function = Wrapper.call,
-        .context = &args,
+        .setup = setup_fn,
+        .function = bench_fn,
+        .context = undefined,
     };
 }
