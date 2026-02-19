@@ -28,6 +28,7 @@ pub fn analyse(samples: std.ArrayList(i128)) void {
     fmtNanos(avg);
     std.debug.print(" | ", .{});
     fmtNanos(max);
+    std.debug.print("\n", .{});
 }
 
 /// format some time in nanoseconds 
