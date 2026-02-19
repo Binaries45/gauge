@@ -1,25 +1,23 @@
 const std = @import("std");
 const gauge = @import("gauge");
 
-/// returns the nth fibonacci number
-fn fib(n: u64) u64 {
-    if (n < 2) return n;
-    var a: u64 = 0;
-    var b: u64 = 1;
-    for (2..n + 1) |_| {
-        const next = a +% b;
-        a = b;
-        b = next;
-    }
-    return b;
+fn calculate(a: u64, b: u64) u64 {
+    return (a | b) ^ (a & b);
 }
 
-fn fib_setup() u64 {
-    // return random u64 between 0 and 100
-    return std.crypto.random.int(u64) % 100;
+fn setup() struct {u64, u64} {
+    return .{
+        std.crypto.random.int(u64) % 1_000_000,
+        std.crypto.random.int(u64) % 1_000_000,
+    };
 }
 
 pub fn main() !void {
-    const bench_fibonacci = gauge.bench("nth fibonacci number", fib, fib_setup);
-    bench_fibonacci.run(.{.time = 5e9});
+    std.debug.print("hello world", .{});
+}
+
+// you can run a benchmark in a test :)
+test "calculate" {
+    const bench_calculate = gauge.bench("name", calculate, setup);
+    bench_calculate.run(.{.time = 5e9});
 }

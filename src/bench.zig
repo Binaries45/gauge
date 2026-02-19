@@ -6,7 +6,7 @@ pub const Options = struct {
     time: u64 = 5e9,
 };
 
-pub fn Bench(
+fn Bench(
     comptime Context: type,
     comptime F: type,
 ) type {
@@ -14,12 +14,14 @@ pub fn Bench(
         name: []const u8,
         setup: *const fn() Context,
         function: F,
-        context: Context,
 
         const Self = @This();
 
+        // todo : batch calls to help reduce outliers
         pub fn run(self: *const Self, opts: Options) void {
             std.debug.print("Running benchmark : {s}\n", .{self.name});
+
+            // todo : warmup phase for a few seconds to decide on benchmarking methods
 
             var samples = std.ArrayList(i128).initCapacity(
                 std.heap.page_allocator, 1
@@ -33,7 +35,7 @@ pub fn Bench(
                 const ctx = self.setup();
 
                 const call_start = std.time.nanoTimestamp();
-                _ = self.function(ctx);
+                _ = @call(.auto, self.function, ctx);
                 const call_end = std.time.nanoTimestamp();
 
                 const delta = @max(call_end - call_start, 0);
@@ -58,6 +60,5 @@ pub fn bench(
         .name = name,
         .setup = setup_fn,
         .function = bench_fn,
-        .context = undefined,
     };
 }

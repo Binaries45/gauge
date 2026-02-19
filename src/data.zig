@@ -23,6 +23,26 @@ pub fn analyse(samples: std.ArrayList(i128)) void {
         avg +|= sample;
     }
     avg = @divTrunc(avg, samples.items.len);
+    fmtNanos(min);
+    std.debug.print(" | ", .{});
+    fmtNanos(avg);
+    std.debug.print(" | ", .{});
+    fmtNanos(max);
+}
 
-    std.debug.print("{d} | {d} | {d}", .{min, avg, max});
+/// format some time in nanoseconds 
+pub fn fmtNanos(n: i128) void {
+    const float_n = @as(f64, @floatFromInt(n));
+    switch (n) {
+        0...999 => std.debug.print("{d}ns", .{n}),
+        1000...999_999 => std.debug.print("{d:.2}{c}s", .{float_n / 1000, 230}),
+        1_000_000...999_999_999 => std.debug.print("{d:.2}ms", .{float_n / 1_000_000}),
+        else => std.debug.print("{d:.2}s", .{float_n / 1_000_000_000}),
+    }
+}
+
+/// write data on the given benchmark to zig-out/benchmarks.zon
+pub fn save(self: Data) !void {
+    _ = self;
+    return error.NotImplemented;
 }
