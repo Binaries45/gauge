@@ -26,7 +26,6 @@ fn Bench(
             var samples = std.ArrayList(i128).initCapacity(
                 std.heap.page_allocator, 1
             ) catch unreachable;
-
             defer samples.deinit(std.heap.page_allocator);
 
             const end = std.time.nanoTimestamp() + opts.time;
@@ -42,12 +41,13 @@ fn Bench(
                 samples.append(std.heap.page_allocator, delta) catch unreachable;
             }
 
-            Data.analyse(samples);
+            const data = Data.analyse(samples);
+            data.display();
         }
     };
 }
 
-// todo : maybe find a way to clean up this ugly ass signature
+// fixme : maybe find a way to clean up this ugly ass signature
 pub fn bench(
     name: []const u8,
     comptime bench_fn: anytype,

@@ -2,15 +2,15 @@ const std = @import("std");
 
 pub const Data = @This();
 
-/// the maximum time taken for a single iteration
-max_time: u64,
 /// the minimum time taken for a single iteration
-min_time: u64,
+min_time: i128,
 /// the average time take for a single iteration
-avg_time: u64,
+avg_time: i128,
+/// the maximum time taken for a single iteration
+max_time: i128,
 
 /// analyse timing samples, and compare against previous results if the exist
-pub fn analyse(samples: std.ArrayList(i128)) void {
+pub fn analyse(samples: std.ArrayList(i128)) Data {
     var min: i128 = std.math.maxInt(i128);
     var max: i128 = 0;
     var avg: i128 = 0;
@@ -23,11 +23,20 @@ pub fn analyse(samples: std.ArrayList(i128)) void {
         avg +|= sample;
     }
     avg = @divTrunc(avg, samples.items.len);
-    fmtNanos(min);
+
+    return .{
+        .min_time = min,
+        .avg_time = avg,
+        .max_time = max,
+    };
+}
+
+pub fn display(current: Data) void {
+    fmtNanos(current.min_time);
     std.debug.print(" | ", .{});
-    fmtNanos(avg);
+    fmtNanos(current.avg_time);
     std.debug.print(" | ", .{});
-    fmtNanos(max);
+    fmtNanos(current.max_time);
     std.debug.print("\n", .{});
 }
 
@@ -42,8 +51,3 @@ pub fn fmtNanos(n: i128) void {
     }
 }
 
-/// write data on the given benchmark to zig-out/benchmarks.zon
-pub fn save(self: Data) !void {
-    _ = self;
-    return error.NotImplemented;
-}
